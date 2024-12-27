@@ -50,7 +50,7 @@ function App() {
     })).filter(item => item.name !== 'WeekTotal' && item.name !== 'BiweekTotal');
 
     return (
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="80%" height={300}>
       <BarChart
         data={data}
         margin={{
