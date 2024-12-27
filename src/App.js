@@ -6,27 +6,32 @@ import { logout } from './redux/reducers';
 import './App.css';
 
 function App() {
-  const user = useSelector((state) => state.user.user); // Access the user state
+  const user = useSelector((state) => state.user.user);
   const dispatch = useDispatch();
 
   const handleLogout = () => {
-    dispatch(logout()); // Dispatch the logout action
+    dispatch(logout());
   };
 
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Clock In and Out App</h1>
+    <div className="app-container">
+      <header className="app-header">
+        <h1 className="app-title">Clock In and Out App</h1>
         {user ? (
-          <div>
-            <h2>Welcome, {user.username}!</h2>
-            <button onClick={handleLogout}>Logout</button>
-            <ClockInOut />
+          <div className="user-info">
+            <p>Welcome, {user.username}!</p>
+            <button onClick={handleLogout} className="logout-button">Logout</button>
           </div>
-        ) : (
-          <Login /> // Show the Login component if not authenticated
-        )}
+        ) : null}
       </header>
+
+      <main className="app-main">
+        {user ? (
+          <ClockInOut />
+        ) : (
+          <Login />
+        )}
+      </main>
     </div>
   );
 }
