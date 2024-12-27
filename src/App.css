@@ -40,7 +40,7 @@
 .app-main {
   flex-grow: 1;
   padding: 20px;
-  background-color: #f8f9fa;
+  background-color: hwb(209 81% 3%);
   font-size: 16px;
   cursor: pointer;
 }
@@ -90,31 +90,47 @@
 
 
 .login-container {
-  background-color: hsl(0, 0%, 100%);
+  background-color: #f8f9fa;
   border-radius: 10px;
   padding: 30px;
-  width: 350px;
+  width: 400px;
   margin: 50px auto;
   box-sizing: border-box;
+}
+
+.welcome-text {
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.login-box {
+  background-color: #ffffff;
+  border-radius: 5px;
+  padding: 20px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 15px;
 }
 
-.login-title {
+.login-subtitle {
   text-align: center;
-  color: #333;
-  margin-bottom: 25px;
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 16px;
 }
 
 .login-input {
-  background-color: hsl(0, 0%, 91%);
+  background-color: #f8f9fa;
   border: none;
   border-radius: 5px;
   padding: 15px;
+  margin-bottom: 15px;
   font-size: 16px;
   width: 90%;
 }
@@ -144,12 +160,14 @@
 }
 
 .tab {
-  background-color: #f8f9fa;
+  background-color: hwb(0 100% 0%);
   border: none;
   padding: 10px 20px;
   font-size: 16px;
   cursor: pointer;
   margin-right: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .tab.active {
@@ -158,6 +176,7 @@
 }
 
 .user-profile {
+  background-color: hwb(0 100% 0%);
   max-width: 400px;
   margin: 0 auto;
   padding: 20px;
@@ -174,9 +193,12 @@
 }
 
 .work-hours-chart {
+  background-color: hwb(0 100% 0%);
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
 .work-hours-chart h2 {
