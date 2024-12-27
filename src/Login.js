@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import mockUsers from './mockUsers'; // Ensure this path is correct
-import { login } from './redux/reducers'; // Ensure this path is correct
+import mockUsers from './mockUsers';
+import { login } from './redux/reducers';
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -10,31 +10,28 @@ const Login = () => {
   const [error, setError] = useState('');
 
   const handleLogin = (e) => {
-    e.preventDefault(); // Prevent the default form submission
+    e.preventDefault();
 
     // Find the user in the mockUsers array
-    const user = mockUsers.find(
-      (u) => u.username === username && u.password === password
-    );
+    const user = mockUsers.find(u => u.username === username && u.password === password);
 
-    // Check if the user exists
     if (user) {
-      dispatch(login(user)); // Dispatch the login action with the user info
+      dispatch(login(user));
     } else {
-      setError('Invalid username or password'); // Set error message
+      setError('Invalid username or password');
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
+    <div className="login-container">
+      <form onSubmit={handleLogin} className="login-form">
         <input
           type="text"
           placeholder="Username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           required
+          className="login-input"
         />
         <input
           type="password"
@@ -42,10 +39,11 @@ const Login = () => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          className="login-input"
         />
-        <button type="submit">Login</button>
+        <button type="submit" className="login-button">Log In</button>
+        {error && <p className="login-error">{error}</p>}
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>} {/* Display error message */}
     </div>
   );
 };

@@ -43,3 +43,49 @@ button {
     transform: rotate(360deg);
   }
 }
+
+.login-container {
+  background-color: hsl(0, 0%, 100%);
+  border-radius: 10px;
+  padding: 30px;
+  width: 350px;
+  margin: 50px auto;
+  box-sizing: border-box;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.login-title {
+  text-align: center;
+  color: #333;
+  margin-bottom: 25px;
+}
+
+.login-input {
+  background-color: hsl(0, 0%, 91%);
+  border: none;
+  border-radius: 5px;
+  padding: 15px;
+  font-size: 16px;
+  width: 90%;
+}
+
+.login-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.login-error {
+  color: #dc3545;
+  text-align: center;
+  margin-top: 10px;
+}
