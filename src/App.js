@@ -41,6 +41,9 @@ function App() {
     };
 
     simulateFetchWorkHours();
+
+    // Scroll to the top of the page when the component mounts
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const renderChart = () => {
