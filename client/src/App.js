@@ -7,6 +7,7 @@ import ClockInOut from './ClockInOut';
 import UserProfile from './UserProfile';
 import AdminDashboard from './AdminDashboard';
 import Login from './Login';
+import api from './api';
 import {
   BarChart,
   Bar,
@@ -17,7 +18,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import axios from 'axios';
 
 function App() {
   const { user, isLoading, error } = useSelector((state) => state.auth);
@@ -30,7 +30,7 @@ function App() {
       const fetchWorkHours = async () => {
         try {
           const token = localStorage.getItem('token');
-          const response = await axios.get('/api/users/current-user/work-hours', {
+          const response = await api.get('/api/users/current-user/work-hours', {
             headers: { Authorization: `Bearer ${token}` },
           });
           setWorkHours(response.data);
@@ -54,7 +54,7 @@ function App() {
     const data = Object.keys(workHours.dailyHours || {})
       .map((day) => ({ name: day, hours: workHours.dailyHours[day] }))
       .sort((a, b) => new Date(a.name) - new Date(b.name));
-  
+
     return (
       <ResponsiveContainer width="80%" height={300}>
         <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -69,7 +69,6 @@ function App() {
       </ResponsiveContainer>
     );
   };
-  
 
   if (!user) {
     return <Login />;

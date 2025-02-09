@@ -1,20 +1,24 @@
 // src/ClockInOut.js
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-//import './ClockInOut.css';
+import './ClockInOut.css';
+import api from './api';
 
 const ClockInOut = () => {
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState(''); // global errors (if needed)
+  const [user, setUser] = useState(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    return storedUser || {};
+  });
+  const [isClockedIn, setIsClockedIn] = useState(user.clockedIn || false);
+  const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [modalError, setModalError] = useState(''); // errors specific to the edit modal
+  const [modalError, setModalError] = useState('');
   const [editDate, setEditDate] = useState(null);
   const [editClockIn, setEditClockIn] = useState(new Date());
   const [editClockOut, setEditClockOut] = useState(new Date());
 
-  // Fetch the current user (including clockEntries) from the server.
+  // Fetch the current user (with clockEntries) from the server.
   const fetchUser = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
@@ -22,16 +26,17 @@ const ClockInOut = () => {
         setError('No token found');
         return;
       }
-      const response = await axios.get('/api/users/current-user', {
+      const response = await api.get('/api/users/current-user', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(response.data);
+      setIsClockedIn(response.data.clockedIn);
       setError('');
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching user data:', err);
       setError('Failed to fetch user status.');
     }
-  }, []);
+  }, [user._id]);
 
   useEffect(() => {
     fetchUser();
@@ -41,14 +46,16 @@ const ClockInOut = () => {
   const handleClockIn = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
-        '/api/users/current-user/clock-in',
-        {},
+      const currentTime = new Date();
+      const response = await api.put(
+        `/api/users/${user._id}/clockin`,
+        { time: currentTime },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setUser(response.data.user || response.data);
+      setUser(response.data);
+      setIsClockedIn(true);
     } catch (err) {
-      console.error(err);
+      console.error('Clock In error:', err);
       setError('Failed to clock in.');
     }
   };
@@ -57,14 +64,16 @@ const ClockInOut = () => {
   const handleClockOut = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.put(
-        '/api/users/current-user/clock-out',
-        {},
+      const currentTime = new Date();
+      const response = await api.put(
+        `/api/users/${user._id}/clockout`,
+        { time: currentTime },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setUser(response.data.user || response.data);
+      setUser(response.data);
+      setIsClockedIn(false);
     } catch (err) {
-      console.error(err);
+      console.error('Clock Out error:', err);
       setError('Failed to clock out.');
     }
   };
@@ -87,14 +96,20 @@ const ClockInOut = () => {
   // Open the edit modal for a given day.
   const handleEdit = (day) => {
     setEditDate(day);
-    setModalError(''); // clear any previous modal errors
+    setModalError('');
     const grouped = groupEntriesByDay();
     const dayKey = day.toLocaleDateString();
     const entries = grouped[dayKey] || [];
     const clockInEntry = entries.find(e => e.type === 'clockIn');
     const clockOutEntry = entries.find(e => e.type === 'clockOut');
 
-    // If entries don't exist, set default times (e.g., 9 AM and 5 PM).
+    // If no entries exist for that day, display an error message in the modal.
+    if (!clockInEntry && !clockOutEntry) {
+      setModalError('No existing time entries for this day to edit.');
+      return;
+    }
+
+    // Set default times: if an entry exists, use its timestamp; otherwise, use defaults.
     const defaultClockIn = new Date(day);
     defaultClockIn.setHours(9, 0, 0, 0);
     const defaultClockOut = new Date(day);
@@ -112,13 +127,12 @@ const ClockInOut = () => {
     try {
       const token = localStorage.getItem('token');
       const payload = {
-        // Use the date portion in "YYYY-MM-DD" format.
         date: editDate.toISOString().split('T')[0],
         clockIn: editClockIn ? editClockIn.toISOString() : undefined,
         clockOut: editClockOut ? editClockOut.toISOString() : undefined,
       };
 
-      const response = await axios.put(
+      const response = await api.put(
         '/api/users/current-user/time-entries',
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -138,7 +152,7 @@ const ClockInOut = () => {
     setModalError('');
   };
 
-  // Format a date into a human-readable string.
+  // Format a date into a full readable string (for display in the grid).
   const formatDate = (dateInput) => {
     const date = new Date(dateInput);
     if (isNaN(date.getTime())) return 'Invalid date';
@@ -153,7 +167,7 @@ const ClockInOut = () => {
     }).format(date);
   };
 
-  // Create an array of sorted grouped dates.
+  // Get grouped entries and sort the dates.
   const grouped = groupEntriesByDay();
   const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b));
 
@@ -169,6 +183,7 @@ const ClockInOut = () => {
           Clock Out
         </button>
       </div>
+
       {/* Grouped view of time entries */}
       <div className="entries-grid">
         {sortedDates.map(date => (
@@ -188,24 +203,7 @@ const ClockInOut = () => {
           </div>
         ))}
       </div>
-      {/* Section to display all time entries */}
-      <div className="all-entries">
-        <h2>All Time Entries</h2>
-        {user && user.clockEntries && user.clockEntries.length > 0 ? (
-          <ul>
-            {user.clockEntries
-              .slice()
-              .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-              .map((entry, index) => (
-                <li key={index}>
-                  {entry.type === 'clockIn' ? 'Clock In' : 'Clock Out'} at {formatDate(entry.timestamp)}
-                </li>
-              ))}
-          </ul>
-        ) : (
-          <p>No time entries available.</p>
-        )}
-      </div>
+
       {/* Edit Modal */}
       {showModal && (
         <div className="modal-overlay">

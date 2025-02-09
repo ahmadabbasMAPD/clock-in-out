@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './AdminDashboard.css';
+import api from './api';
+
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +15,7 @@ const AdminDashboard = () => {
   const fetchAllUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('/api/users', {
+      const response = await api.get('/api/users', {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUsers(response.data);
@@ -23,6 +25,7 @@ const AdminDashboard = () => {
       setError('Failed to fetch users.');
     }
   };
+  
 
   useEffect(() => {
     fetchAllUsers();
