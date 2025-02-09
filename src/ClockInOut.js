@@ -1,101 +1,173 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+// src/ClockInOut.js
+import React, { useState, useEffect, useCallback } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import './ClockInOut.css';
+import api from './api';
 
 const ClockInOut = () => {
-  const [isClockedIn, setIsClockedIn] = useState(false);
+  // Initialize user state from localStorage if available
   const [user, setUser] = useState(() => {
     const storedUser = JSON.parse(localStorage.getItem('user'));
     return storedUser || {};
   });
+  const [isClockedIn, setIsClockedIn] = useState(user.clockedIn || false);
+  const [error, setError] = useState('');
+  
+  // Modal state for editing today's entries
   const [showModal, setShowModal] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
+  const [editDate, setEditDate] = useState(null); // The day being edited
+  const [editClockIn, setEditClockIn] = useState(new Date());
+  const [editClockOut, setEditClockOut] = useState(new Date());
+  const [modalError, setModalError] = useState('');
 
-  useEffect(() => {
-    if (user._id) {
-      axios.get(`/api/users/${user._id}`)
-        .then(response => {
-          setUser(response.data);
-        })
-        .catch(error => {
-          console.error('Error fetching user data:', error);
+  // Fetch the current user (including clockEntries) from the server
+  const fetchUser = useCallback(async () => {
+    try {
+      if (user._id) {
+        const response = await api.get(`/api/users/current-user`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
         });
+        setUser(response.data);
+        setIsClockedIn(response.data.clockedIn);
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError('Failed to fetch user data.');
     }
   }, [user._id]);
 
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
+
+  // Handler for Clock In: call the server endpoint and update user state.
   const handleClockIn = async () => {
-    if (!isClockedIn) {
-      const currentTime = new Date();
-      const response = await axios.put(`/api/users/${user._id}/clockin`, { time: currentTime });
-      const updatedUser = response.data;
-      setUser(updatedUser);
-      setIsClockedIn(true);
-
-      setUser(prevUser => {
-        const newUser = { ...prevUser };
-        newUser.clockEntries = newUser.clockEntries || [];
-        newUser.clockEntries.push({ date: currentTime, clockIn: currentTime, clockOut: null });
-        return newUser;
-      });
-    }
-  };
-
-  const handleClockOut = async () => {
-    if (isClockedIn) {
-      const currentTime = new Date();
-      const response = await axios.put(`/api/users/${user._id}/clockout`, { time: currentTime });
-      const updatedUser = response.data;
-      setUser(updatedUser);
-      setIsClockedIn(false);
-
-      setUser(prevUser => {
-        const newUser = { ...prevUser };
-        newUser.clockEntries = newUser.clockEntries.map(entry => {
-          if (new Date(entry.date).setHours(0, 0, 0, 0) === new Date(currentTime).setHours(0, 0, 0, 0)) {
-            return { ...entry, clockOut: currentTime };
-          }
-          return entry;
-        });
-        return newUser;
-      });
-    }
-  };
-
-  const groupEntriesByDay = () => {
-    const groupedEntries = {};
-    user.clockEntries.forEach(entry => {
-      const date = new Date(entry.date).toLocaleDateString();
-      if (!groupedEntries[date]) {
-        groupedEntries[date] = [];
+    if (!isClockedIn && user._id) {
+      try {
+        const currentTime = new Date();
+        const response = await api.put(
+          `/api/users/${user._id}/clockin`,
+          { time: currentTime },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        setUser(response.data);
+        setIsClockedIn(true);
+      } catch (err) {
+        console.error('Clock In error:', err);
+        setError('Failed to clock in.');
       }
-      groupedEntries[date].push(entry);
+    }
+  };
+
+  // Handler for Clock Out: call the server endpoint and update user state.
+  const handleClockOut = async () => {
+    if (isClockedIn && user._id) {
+      try {
+        const currentTime = new Date();
+        const response = await api.put(
+          `/api/users/${user._id}/clockout`,
+          { time: currentTime },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        setUser(response.data);
+        setIsClockedIn(false);
+      } catch (err) {
+        console.error('Clock Out error:', err);
+        setError('Failed to clock out.');
+      }
+    }
+  };
+
+  // Group clock entries by day using the timestamp field.
+  const groupEntriesByDay = () => {
+    if (!user.clockEntries) return {};
+    const grouped = {};
+    user.clockEntries.forEach(entry => {
+      const entryDate = new Date(entry.timestamp);
+      const dateKey = entryDate.toLocaleDateString();
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
+      }
+      grouped[dateKey].push(entry);
     });
-    return groupedEntries;
+    return grouped;
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleTimeString();
+  // Helper: Format a date to display only the time.
+  const formatTime = (dateInput) => {
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return 'Invalid date';
+    return date.toLocaleTimeString();
   };
 
-  const handleEdit = (date) => {
-    setSelectedDay(date);
+  // Open the edit modal for a given day.
+  const handleEdit = (day) => {
+    setModalError('');
+    setEditDate(day);
+    const grouped = groupEntriesByDay();
+    const dayKey = day.toLocaleDateString();
+    const entries = grouped[dayKey] || [];
+    const clockInEntry = entries.find(e => e.type.toLowerCase() === 'clockin');
+    const clockOutEntry = entries.find(e => e.type.toLowerCase() === 'clockout');
+
+    // If no entries exist for that day, show an error message and do not open the modal.
+    if (!clockInEntry && !clockOutEntry) {
+      setModalError('No existing time entries for this day to edit.');
+      return;
+    }
+
+    // Set default times: use existing times if available; otherwise, default to 9 AM and 5 PM.
+    const defaultClockIn = new Date(day);
+    defaultClockIn.setHours(9, 0, 0, 0);
+    const defaultClockOut = new Date(day);
+    defaultClockOut.setHours(17, 0, 0, 0);
+
+    setEditClockIn(clockInEntry ? new Date(clockInEntry.timestamp) : defaultClockIn);
+    setEditClockOut(clockOutEntry ? new Date(clockOutEntry.timestamp) : defaultClockOut);
     setShowModal(true);
   };
 
-  const handleSave = (clockIn, clockOut) => {
-    // Implement the logic to save the edited time entries
-    console.log('Saving edited time entries:', clockIn, clockOut);
-    setShowModal(false);
+  // Save the edited time entries by calling the server endpoint.
+  const handleSave = async (e) => {
+    e.preventDefault();
+    if (!user || !editDate) return;
+    try {
+      const payload = {
+        // Use the date portion in "YYYY-MM-DD" format.
+        date: editDate.toISOString().split('T')[0],
+        clockIn: editClockIn ? editClockIn.toISOString() : undefined,
+        clockOut: editClockOut ? editClockOut.toISOString() : undefined,
+      };
+
+      const response = await api.put(
+        '/api/users/current-user/time-entries',
+        payload,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      setUser(response.data.user || response.data);
+      setShowModal(false);
+      setModalError('');
+    } catch (err) {
+      console.error('Error updating time entries:', err);
+      const errorMsg = err.response?.data?.error || 'Failed to update time entries.';
+      setModalError(errorMsg);
+    }
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
+    setModalError('');
   };
+
+  // Get grouped entries and sort the dates.
+  const grouped = groupEntriesByDay();
+  const sortedDates = Object.keys(grouped).sort((a, b) => new Date(a) - new Date(b));
 
   return (
     <div className="clock-in-out-container">
       <h1 className="status">{isClockedIn ? 'Clocked In' : 'Clocked Out'}</h1>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <div className="button-container">
         <button className="clock-button" onClick={handleClockIn} disabled={isClockedIn}>
           Clock In
@@ -105,17 +177,22 @@ const ClockInOut = () => {
         </button>
       </div>
 
+      {/* Grouped view of time entries */}
       <div className="entries-grid">
-        {Object.entries(groupEntriesByDay()).map(([date, entries]) => (
+        {sortedDates.map(date => (
           <div className="day-entries" key={date}>
             <h3>{date}</h3>
             <div className="entry-item">
-              <div className="entry-type">Clock In: </div>
-              <div className="entry-time">{formatDate(entries.find(entry => entry.type === 'Clock In')?.time)}</div>
+              <div className="entry-type">Clock In:</div>
+              <div className="entry-time">
+                {formatTime(grouped[date].find(e => e.type.toLowerCase() === 'clockin')?.timestamp)}
+              </div>
             </div>
             <div className="entry-item">
               <div className="entry-type">Clock Out:</div>
-              <div className="entry-time">{formatDate(entries.find(entry => entry.type === 'Clock Out')?.time)}</div>
+              <div className="entry-time">
+                {formatTime(grouped[date].find(e => e.type.toLowerCase() === 'clockout')?.timestamp)}
+              </div>
             </div>
             <button className="edit-button" onClick={() => handleEdit(new Date(date))}>
               <span role="img" aria-label="edit">✏️</span>
@@ -124,19 +201,18 @@ const ClockInOut = () => {
         ))}
       </div>
 
+      {/* Edit Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Edit Time Entries for {selectedDay.toLocaleDateString()}</h2>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              handleSave(e.target.clockIn.value, e.target.clockOut.value);
-            }}>
+            <h2>Edit Time Entries for {editDate.toLocaleDateString()}</h2>
+            {modalError && <p className="modal-error" style={{ color: 'red' }}>{modalError}</p>}
+            <form onSubmit={handleSave}>
               <div>
                 <label>Clock In:</label>
                 <DatePicker
-                  selected={selectedDay}
-                  onChange={(date) => setSelectedDay(date)}
+                  selected={editClockIn}
+                  onChange={(date) => setEditClockIn(date)}
                   showTimeSelect
                   timeIntervals={15}
                   timeCaption="Time"
@@ -147,8 +223,8 @@ const ClockInOut = () => {
               <div>
                 <label>Clock Out:</label>
                 <DatePicker
-                  selected={selectedDay}
-                  onChange={(date) => setSelectedDay(date)}
+                  selected={editClockOut}
+                  onChange={(date) => setEditClockOut(date)}
                   showTimeSelect
                   timeIntervals={15}
                   timeCaption="Time"
@@ -156,7 +232,7 @@ const ClockInOut = () => {
                   name="clockOut"
                 />
               </div>
-              <div>
+              <div className="modal-buttons">
                 <button type="submit">Save Changes</button>
                 <button type="button" onClick={handleCloseModal}>Cancel</button>
               </div>

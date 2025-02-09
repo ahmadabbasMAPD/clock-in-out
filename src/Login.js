@@ -1,6 +1,7 @@
+// src/Login.js
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import api from './api'; // Using centralized Axios instance
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -11,7 +12,8 @@ const Login = ({ onLogin }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', { username, password });
+      // Use api.post to use the base URL defined in api.js
+      const response = await api.post('/api/auth/login', { username, password });
       const user = response.data;
       console.log('Login successful:', user);
       onLogin(user);
