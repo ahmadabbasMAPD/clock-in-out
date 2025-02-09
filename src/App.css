@@ -81,69 +81,6 @@
   color: white;
 }
 
-
-.login-container {
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  padding: 30px;
-  width: 400px;
-  margin: 50px auto;
-  box-sizing: border-box;
-}
-
-.welcome-text {
-  text-align: center;
-  color: #333;
-  margin-bottom: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.login-box {
-  background-color: #ffffff;
-  border-radius: 5px;
-  padding: 20px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.login-subtitle {
-  text-align: center;
-  color: #666;
-  margin-bottom: 20px;
-  font-size: 16px;
-}
-
-.login-input {
-  background-color: #f8f9fa;
-  border: none;
-  border-radius: 5px;
-  padding: 15px;
-  margin-bottom: 15px;
-  font-size: 16px;
-  width: 90%;
-}
-
-.login-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-}
-
-.login-error {
-  color: #dc3545;
-  text-align: center;
-  margin-top: 10px;
-}
-
 /* Add these styles to your existing App.css */
 
 .tabs {

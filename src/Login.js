@@ -1,52 +1,50 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import mockUsers from './mockUsers';
-import { login } from './redux/reducers';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
-  const dispatch = useDispatch();
+const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-
-    const user = mockUsers.find(u => u.username === username && u.password === password);
-
-    if (user) {
-      dispatch(login(user));
-    } else {
+    try {
+      const response = await axios.post('http://localhost:3001/api/auth/login', { username, password });
+      const user = response.data;
+      console.log('Login successful:', user);
+      onLogin(user);
+      navigate('/');
+    } catch (err) {
+      console.error('Login failed:', err);
       setError('Invalid username or password');
     }
   };
 
   return (
     <div className="login-container">
-      <h2 className="welcome-text">Welcome to Clock-In-Out App</h2>
-      <div className="login-box">
-        <h3 className="login-subtitle">Please sign in to continue</h3>
-        <form onSubmit={handleLogin} className="login-form">
-          <input
-            type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            className="login-input"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="login-input"
-          />
-          <button type="submit" className="login-button">Log In</button>
-          {error && <p className="login-error">{error}</p>}
-        </form>
-      </div>
+      <h2 className="welcome-text">Welcome to Clock-In-Out App!!!</h2>
+      <form onSubmit={handleLogin} className="login-form">
+        <input
+          type="text"
+          placeholder="Username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          className="login-input"
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          className="login-input"
+        />
+        <button type="submit" className="login-button">Log In</button>
+        {error && <p className="login-error">{error}</p>}
+      </form>
     </div>
   );
 };

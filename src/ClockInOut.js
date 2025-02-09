@@ -1,81 +1,96 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 const ClockInOut = () => {
   const [isClockedIn, setIsClockedIn] = useState(false);
-  const [timeEntries, setTimeEntries] = useState([]);
+  const [user, setUser] = useState(() => {
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    return storedUser || {};
+  });
   const [showModal, setShowModal] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
 
-  const handleClockIn = () => {
+  useEffect(() => {
+    if (user._id) {
+      axios.get(`/api/users/${user._id}`)
+        .then(response => {
+          setUser(response.data);
+        })
+        .catch(error => {
+          console.error('Error fetching user data:', error);
+        });
+    }
+  }, [user._id]);
+
+  const handleClockIn = async () => {
     if (!isClockedIn) {
       const currentTime = new Date();
-      setTimeEntries([...timeEntries, { type: 'Clock In', time: currentTime, editable: false }]);
+      const response = await axios.put(`/api/users/${user._id}/clockin`, { time: currentTime });
+      const updatedUser = response.data;
+      setUser(updatedUser);
       setIsClockedIn(true);
+
+      setUser(prevUser => {
+        const newUser = { ...prevUser };
+        newUser.clockEntries = newUser.clockEntries || [];
+        newUser.clockEntries.push({ date: currentTime, clockIn: currentTime, clockOut: null });
+        return newUser;
+      });
     }
   };
 
-  const handleClockOut = () => {
+  const handleClockOut = async () => {
     if (isClockedIn) {
       const currentTime = new Date();
-      setTimeEntries([...timeEntries, { type: 'Clock Out', time: currentTime, editable: false }]);
+      const response = await axios.put(`/api/users/${user._id}/clockout`, { time: currentTime });
+      const updatedUser = response.data;
+      setUser(updatedUser);
       setIsClockedIn(false);
+
+      setUser(prevUser => {
+        const newUser = { ...prevUser };
+        newUser.clockEntries = newUser.clockEntries.map(entry => {
+          if (new Date(entry.date).setHours(0, 0, 0, 0) === new Date(currentTime).setHours(0, 0, 0, 0)) {
+            return { ...entry, clockOut: currentTime };
+          }
+          return entry;
+        });
+        return newUser;
+      });
     }
-  };
-
-  const handleEdit = (day) => {
-    setSelectedDay(day);
-    setShowModal(true);
-  };
-
-  const handleSave = (clockInTime, clockOutTime) => {
-    const editedEntries = [...timeEntries];
-    const dayEntries = editedEntries.filter(entry => 
-      new Date(entry.time).toLocaleDateString() === new Date(selectedDay).toLocaleDateString()
-    );
-    
-    dayEntries.forEach(entry => {
-      if (entry.type === 'Clock In') {
-        entry.time = new Date(clockInTime);
-      } else if (entry.type === 'Clock Out') {
-        entry.time = new Date(clockOutTime);
-      }
-    });
-
-    setTimeEntries(editedEntries);
-    setShowModal(false);
-  };
-
-  const handleCloseModal = () => {
-    setShowModal(false);
-  };
-
-  const formatDate = (date) => {
-    if (!(date instanceof Date) || isNaN(date.getTime())) {
-      return 'Invalid date';
-    }
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      timeZoneName: 'short',
-    }).format(date);
   };
 
   const groupEntriesByDay = () => {
     const groupedEntries = {};
-    timeEntries.forEach(entry => {
-      const date = new Date(entry.time).toLocaleDateString();
+    user.clockEntries.forEach(entry => {
+      const date = new Date(entry.date).toLocaleDateString();
       if (!groupedEntries[date]) {
         groupedEntries[date] = [];
       }
       groupedEntries[date].push(entry);
     });
     return groupedEntries;
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleTimeString();
+  };
+
+  const handleEdit = (date) => {
+    setSelectedDay(date);
+    setShowModal(true);
+  };
+
+  const handleSave = (clockIn, clockOut) => {
+    // Implement the logic to save the edited time entries
+    console.log('Saving edited time entries:', clockIn, clockOut);
+    setShowModal(false);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   return (
@@ -89,7 +104,7 @@ const ClockInOut = () => {
           Clock Out
         </button>
       </div>
-```
+
       <div className="entries-grid">
         {Object.entries(groupEntriesByDay()).map(([date, entries]) => (
           <div className="day-entries" key={date}>
@@ -108,7 +123,7 @@ const ClockInOut = () => {
           </div>
         ))}
       </div>
-```
+
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -150,7 +165,7 @@ const ClockInOut = () => {
         </div>
       )}
     </div>
-);
-          };
-  
+  );
+};
+
 export default ClockInOut;

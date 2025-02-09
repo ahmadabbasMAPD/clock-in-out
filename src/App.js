@@ -3,14 +3,14 @@ import { useSelector, useDispatch } from 'react-redux';
 import ClockInOut from './ClockInOut';
 import Login from './Login';
 import UserProfile from './UserProfile';
-import { logout } from './redux/reducers';
+import { login, logout } from './redux/actions'; // Keep this import
 import './App.css';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
 
 function App() {
   const user = useSelector((state) => state.user.user);
   const dispatch = useDispatch();
+
   const [activeTab, setActiveTab] = useState('clock');
   const [workHours, setWorkHours] = useState({});
 
@@ -23,8 +23,9 @@ function App() {
   };
 
   useEffect(() => {
+    console.log('User state updated:', user);
+
     // Simulating fetching work hours data
-    // In a real scenario, you'd fetch this from an API or database
     const simulateFetchWorkHours = async () => {
       await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
       setWorkHours({
@@ -41,9 +42,6 @@ function App() {
     };
 
     simulateFetchWorkHours();
-
-    // Scroll to the top of the page when the component mounts
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const renderChart = () => {
@@ -54,23 +52,23 @@ function App() {
 
     return (
       <ResponsiveContainer width="80%" height={300}>
-      <BarChart
-        data={data}
-        margin={{
-          top: 5,
-          right: 30,
-          left: 20,
-          bottom: 5,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis />
-        <Tooltip />
-        <Legend />
-        <Bar dataKey="hours" fill="#8884d8" />
-      </BarChart>
-    </ResponsiveContainer>
+        <BarChart
+          data={data}
+          margin={{
+            top: 5,
+            right: 30,
+            left: 20,
+            bottom: 5,
+          }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="hours" fill="#8884d8" />
+        </BarChart>
+      </ResponsiveContainer>
     );
   };
 
@@ -124,11 +122,11 @@ function App() {
             )}
           </>
         ) : (
-          <Login />
+          <Login onLogin={(user) => dispatch(login(user))} />
         )}
       </main>
     </div>
   );
 }
-//saved
+
 export default App;
